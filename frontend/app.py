@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-# 获取项目根目录并添加到 Python 路径
+# 将项目根目录添加到 Python 路径
 root_dir = Path(__file__).parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
@@ -10,12 +10,6 @@ import streamlit as st
 import os
 import uuid
 import tempfile
-# ... 剩下的代码保持不变
-import streamlit as st
-import os
-import uuid
-import tempfile
-from pathlib import Path
 
 # ======================================
 # 1. 导入 RAG 核心服务
@@ -35,6 +29,7 @@ st.set_page_config(
 st.title("🏫 安徽工程大学校园政策智能问答助手")
 st.caption("基于RAG技术的校园政策问答系统")
 
+
 # ======================================
 # 3. 初始化索引（只执行一次）
 # ======================================
@@ -43,9 +38,9 @@ def load_rag_index():
     with st.spinner("📚 正在加载政策文档索引，请稍候..."):
         # 尝试多个可能的位置
         possible_paths = [
-            Path(__file__).parent.parent / "data",  # 从 frontend 往上两级
-            Path.cwd() / "data",  # 当前工作目录
-            Path("/mount/src/q-a-campus-policies/data")  # Streamlit Cloud 上的绝对路径
+            Path(__file__).parent.parent / "data",
+            Path.cwd() / "data",
+            Path("/mount/src/q-a-campus-policies/data")
         ]
 
         data_dir = None
@@ -68,10 +63,10 @@ def load_rag_index():
             st.error(f"❌ 索引加载失败：{str(e)}")
             return False
 
+
 if "index_ready" not in st.session_state:
     st.session_state.index_ready = load_rag_index()
 
-# 如果索引没加载成功，停止后续渲染
 if not st.session_state.index_ready:
     st.stop()
 
@@ -122,7 +117,6 @@ if not st.session_state.messages:
 # ======================================
 # 8. 输入框 & 问答逻辑
 # ======================================
-# 处理快捷按钮触发的问题
 input_value = st.session_state.pop("input_value", None)
 
 if input_value:
@@ -131,41 +125,41 @@ else:
     prompt = st.chat_input("请输入您的政策问题...")
 
 if prompt:
-    # 8.1 显示用户消息
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # 8.2 调用 RAG 服务（直接调用本地函数，不再需要 requests）
     with st.chat_message("assistant"):
         with st.spinner("🤔 正在查询政策库..."):
             try:
-                # 调用 service.chat_chain_service.chat
-                try:
-                    result = chat(prompt, st.session_state.session_id)
+                result = chat(prompt, st.session_state.session_id)
 
-                    # ===== 调试：打印 result 的类型和内容 =====
-                    st.write("📦 **调试信息**：`chat` 函数返回的数据类型：", type(result))
-                    st.write("📦 **内容**：", result)
-                    # ===== 调试结束 =====
+                # 调试信息
+                st.write("📦 **调试信息**：数据类型：", type(result))
+                st.write("📦 **内容**：", result)
 
-                    if isinstance(result, dict):
-                        answer = result.get("answer", "未找到相关答案")
-                        sources = result.get("source_files", [])
-                        if result.get("session_id"):
-                            st.session_state.session_id = result.get("session_id")
+                # 兼容不同的返回格式
+                if isinstance(result, dict):
+                    answer = result.get("answer", "未找到相关答案")
+                    sources = result.get("source_files", [])
+                    if result.get("session_id"):
+                        st.session_state.session_id = result.get("session_id")
+                elif isinstance(result, (list, tuple)):
+                    if len(result) >= 1:
+                        answer = result[0] if result[0] else "未找到相关答案"
                     else:
-                        # 如果返回的是其他类型（比如元组），直接转为字符串显示
-                        answer = f"⚠️ 返回格式异常（{type(result)}），请检查日志\n\n原始数据：{result}"
-                        sources = []
-                # 更新 session_id（如果有变化）
-                if result.get("session_id"):
-                    st.session_state.session_id = result.get("session_id")
+                        answer = "未找到相关答案"
+                    sources = result[1] if len(result) > 1 else []
+                    if len(result) > 2 and result[2]:
+                        st.session_state.session_id = result[2]
+                else:
+                    answer = f"⚠️ 返回格式异常（{type(result)}）"
+                    sources = []
+
             except Exception as e:
                 answer = f"❌ 查询失败：{str(e)}"
                 sources = []
 
-        # 8.3 显示回答
         st.markdown(answer)
         if sources:
             with st.expander("📚 参考文献"):
