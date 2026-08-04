@@ -1,3 +1,16 @@
+import sys
+from pathlib import Path
+
+# 获取项目根目录并添加到 Python 路径
+root_dir = Path(__file__).parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+import streamlit as st
+import os
+import uuid
+import tempfile
+# ... 剩下的代码保持不变
 import streamlit as st
 import os
 import uuid
