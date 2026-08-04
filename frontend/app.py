@@ -142,8 +142,24 @@ if prompt:
             try:
                 # 调用 service.chat_chain_service.chat
                 result = chat(prompt, st.session_state.session_id)
-                answer = result.get("answer", "未找到相关答案")
-                sources = result.get("source_files", [])
+
+                # 兼容不同的返回格式
+                if isinstance(result, dict):
+                    answer = result.get("answer", "未找到相关答案")
+                    sources = result.get("source_files", [])
+                elif isinstance(result, (list, tuple)):
+                    # 假设返回格式是 (answer, sources) 或 (answer, sources, session_id)
+                    if len(result) >= 1:
+                        answer = result[0] if result[0] else "未找到相关答案"
+                    else:
+                        answer = "未找到相关答案"
+                    sources = result[1] if len(result) > 1 else []
+                    session_id = result[2] if len(result) > 2 else st.session_state.session_id
+                    if len(result) > 2:
+                        st.session_state.session_id = session_id
+                else:
+                    answer = str(result)
+                    sources = []
                 # 更新 session_id（如果有变化）
                 if result.get("session_id"):
                     st.session_state.session_id = result.get("session_id")
