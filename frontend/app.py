@@ -41,11 +41,26 @@ st.caption("基于RAG技术的校园政策问答系统")
 @st.cache_resource
 def load_rag_index():
     with st.spinner("📚 正在加载政策文档索引，请稍候..."):
-        # 假设 data 文件夹在项目根目录
-        data_dir = Path(__file__).parent / "data"
-        if not data_dir.exists():
-            st.error("❌ data 文件夹不存在，请检查部署文件")
+        # 尝试多个可能的位置
+        possible_paths = [
+            Path(__file__).parent.parent / "data",  # 从 frontend 往上两级
+            Path.cwd() / "data",  # 当前工作目录
+            Path("/mount/src/q-a-campus-policies/data")  # Streamlit Cloud 上的绝对路径
+        ]
+
+        data_dir = None
+        for path in possible_paths:
+            if path.exists():
+                data_dir = path
+                break
+
+        if data_dir is None:
+            st.error("❌ 找不到 data 文件夹，请确认部署文件结构")
+            st.write("尝试过的路径：")
+            for p in possible_paths:
+                st.write(f"- {p}")
             return False
+
         try:
             init_index()
             return True
