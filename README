@@ -1,0 +1,79 @@
+#运行说明
+#1.env文件里deepseek 的 apikey改成自己的
+#2.（建虚拟环境）python3.11左右版本，pip install -r requirements.txt
+#3.python main.oy
+"""
+main.py — 终端命令行交互入口
+
+使用方式：
+    cd campus_policy_rag_backend
+    python main.py
+
+功能：
+    1. 启动时自动初始化向量索引（首次运行会构建索引）
+    2. 终端输入问题进行政策问答
+    3. 每次回答附带引用的来源文件名
+    4. 支持多轮追问（同一会话内保持上下文）
+    5. 输入 exit 退出程序
+"""
+"""
+config.py — 全局配置管理模块
+
+统一读取 .env 文件中的所有配置项，将相对路径解析为基于项目根目录的绝对路径，
+并提供全局常量供其他模块使用。组员只需在 .env 中填入 DeepSeek API Key 即可运行。
+"""
+# -*- coding: utf-8 -*-
+"""
+api_server.py — FastAPI 接口服务启动文件
+
+启动方式：
+    cd campus_policy_rag_backend
+    uvicorn api_server:app --reload --host 0.0.0.0 --port 8000
+    或直接: python api_server.py
+
+接口列表：
+    POST /api/v1/chat/policy  — 发起政策问答
+    POST /api/v1/chat/clear   — 清空指定会话历史
+
+统一返回格式：
+    成功: {"code": 200, "msg": "success", "data": {...}}
+    异常: {"code": 500, "msg": "服务异常，请稍后重试", "data": null}
+    参数: {"code": 400, "msg": "参数不合法", "data": null}
+"""
+"""
+chat_chain_service.py — LangChain 对话编排层服务
+
+职责：
+  1. 对接 DeepSeek Chat 云端 API（langchain-deepseek 包）
+  2. 管理多轮对话上下文记忆（按 session_id 隔离）
+  3. 封装系统提示词，强制 RAG 回答规则
+  4. 串联完整 RAG 链路：检索 -> 组装上下文 -> LLM 生成 -> 记忆更新
+  5. 回答规则校验（无匹配政策时返回固定话术，清空 source_files）
+"""
+"""
+    RAG 完整链路：检索 -> 组装提示词 -> LLM 生成 -> 更新记忆。
+
+    Args:
+        question: 用户问题
+        session_id: 会话唯一标识
+
+    Returns:
+        (answer, source_files)
+        - answer: AI 回答内容
+        - source_files: 引用的 TXT 文件名列表，无匹配时为空列表
+
+    Raises:
+        ValueError: DeepSeek API Key 未配置
+        RuntimeError: DeepSeek API 调用失败（密钥错误、网络异常等）
+"""
+"""
+rag_index_service.py — LlamaIndex 检索层服务
+
+职责：
+  1. 加载 data/clean 下所有 UTF-8 编码的 TXT 政策文档
+  2. 使用 SentenceSplitter 进行文本节点分割
+  3. 使用 BAAI/bge-small-zh-v1.5 本地 Embedding 模型生成向量
+  4. 将向量持久化到 Qdrant 本地文件模式（vector_store 文件夹）
+  5. 首次运行自动构建索引；后续运行直接加载已有向量库
+  6. 提供检索接口，返回相关文本片段和来源文件名
+"""
