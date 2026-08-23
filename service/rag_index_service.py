@@ -1,4 +1,29 @@
 import os
+import sys
+from pathlib import Path
+
+# =====================================================
+# 强制 nltk 使用本地路径（与 app.py 保持一致）
+# =====================================================
+os.environ["NLTK_DATA"] = os.path.join(os.getcwd(), "nltk_data")
+os.environ["HF_HOME"] = os.path.join(os.getcwd(), "hf_cache")
+os.environ["TRANSFORMERS_CACHE"] = os.path.join(os.getcwd(), "hf_cache")
+
+import nltk
+nltk.data.path = [os.environ["NLTK_DATA"]] + nltk.data.path
+try:
+    nltk.download('stopwords', download_dir=os.environ["NLTK_DATA"], quiet=True)
+    nltk.download('punkt', download_dir=os.environ["NLTK_DATA"], quiet=True)
+except:
+    pass
+
+# =====================================================
+# 然后才导入其他依赖
+# =====================================================
+import logging
+from typing import Tuple, List
+from llama_index.core import ...
+# ... 其余代码保持不变 ...
 import logging
 from typing import Tuple, List
 

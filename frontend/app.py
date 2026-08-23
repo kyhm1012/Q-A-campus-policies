@@ -1,21 +1,43 @@
+import os
 import sys
 from pathlib import Path
 
-# 将项目根目录添加到 Python 路径
+# =====================================================
+# 0. 彻底接管 nltk 数据路径（必须在所有 import 之前）
+# =====================================================
+# 设置环境变量，让 nltk 和 huggingface 都使用本地目录
+os.environ["NLTK_DATA"] = os.path.join(os.getcwd(), "nltk_data")
+os.environ["HF_HOME"] = os.path.join(os.getcwd(), "hf_cache")
+os.environ["TRANSFORMERS_CACHE"] = os.path.join(os.getcwd(), "hf_cache")
+
+# 创建目录
+for d in [os.environ["NLTK_DATA"], os.environ["HF_HOME"]]:
+    os.makedirs(d, exist_ok=True)
+
+# 提前导入 nltk 并设置路径
+import nltk
+nltk.data.path = [os.environ["NLTK_DATA"]] + nltk.data.path
+
+# 下载必要的语料（静默）
+nltk.download('stopwords', download_dir=os.environ["NLTK_DATA"], quiet=True)
+nltk.download('punkt', download_dir=os.environ["NLTK_DATA"], quiet=True)
+
+# =====================================================
+# 1. 项目路径设置
+# =====================================================
 root_dir = Path(__file__).parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+# =====================================================
+# 2. 其他 import
+# =====================================================
 import streamlit as st
-import os
 import uuid
-import tempfile
-
-# ======================================
-# 1. 导入 RAG 核心服务
-# ======================================
 from service.chat_chain_service import chat
 from service.rag_index_service import init_index
+
+# ... 其余代码保持不变 ...
 
 # ======================================
 # 2. 页面配置
